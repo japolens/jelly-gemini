@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weekly Task Tracker</title>
+  <style>
+    body {
+      font-family: 'Bahnschrift', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #ffffff;
+      color: #121212;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .dark-mode {
+      background-color: #121212;
+      color: #ffffff;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      text-align: center;
+    }
+
+    .day-buttons button {
+      margin: 5px;
+      padding: 5px 10px;
+      font-weight: bold;
+    }
+
+    .task-section {
+      margin-top: 20px;
+    }
+
+    .task-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .task-item {
+      background-color: #f3fadc;
+      border-radius: 8px;
+      margin: 5px 0;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dark-mode .task-item {
+      background-color: #3c3d2e;
+    }
+
+    .task-text {
+      flex-grow: 1;
+      text-align: left;
+      margin-left: 10px;
+    }
+
+    .completed {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+
+    .input-group {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .input-group input {
+      padding: 5px;
+      width: 70%;
+    }
+
+    .input-group button {
+      padding: 5px;
+      font-weight: bold;
+    }
+
+    #themeToggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗓️ Weekly Task Tracker</h1>
+    <div class="day-buttons">
+      <button onclick="selectDay('Sunday')">SUN</button>
+      <button onclick="selectDay('Monday')">MON</button>
+      <button onclick="selectDay('Tuesday')">TUE</button>
+      <button onclick="selectDay('Wednesday')">WED</button>
+      <button onclick="selectDay('Thursday')">THU</button>
+      <button onclick="selectDay('Friday')">FRI</button>
+      <button onclick="selectDay('Saturday')">SAT</button>
+    </div>
+
+    <div class="task-section">
+      <h2 id="dayTitle">💪 Tasks for </h2>
+      <div class="input-group">
+        <input type="text" id="taskInput" placeholder="Enter a task" />
+        <button onclick="addTask()">➕</button>
+      </div>
+      <ul id="taskList" class="task-list"></ul>
+    </div>
+
+    <div class="task-section">
+      <h2>❕ Other</h2>
+      <div class="input-group">
+        <input type="text" id="sharedTaskInput" placeholder="Enter a shared task" />
+        <button onclick="addSharedTask()">➕</button>
+      </div>
+      <ul id="sharedTaskList" class="task-list"></ul>
+    </div>
+
+    <button id="themeToggle" onclick="toggleTheme()">🌗 Theme</button>
+  </div>
+
+  <script>
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    let tasks = JSON.parse(localStorage.getItem('tasks')) || {};
+    let sharedTasks = JSON.parse(localStorage.getItem('sharedTasks')) || [];
+
+    function saveTasks() {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      localStorage.setItem('sharedTasks', JSON.stringify(sharedTasks));
+    }
+
+    function renderTasks() {
+      document.getElementById('dayTitle').textContent = `💪 Tasks for ${currentDay}`;
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+
+      if (!tasks[currentDay]) tasks[currentDay] = [];
+
+      tasks[currentDay].forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        li.innerHTML = `
+          <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${index})" />
+          <span class="task-text ${task.completed ? 'completed' : ''}">${task.text}</span>
+          <button onclick="deleteTask(${index})">➖</button>
+        `;
+        taskList.appendChild(li);
+      });
+
+      renderSharedTasks();
+    }
+
+    function renderSharedTasks() {
+      const list = document.getElementById('sharedTaskList');
+      list.innerHTML = '';
+
+      sharedTasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        li.innerHTML = `
+          <input type="checkbox" ${task.completed?.[currentDay] ? 'checked' : ''} onchange="toggleSharedTask(${index})" />
+          <span class="task-text ${task.completed?.[currentDay] ? 'completed' : ''}">${task.text}</span>
+          <button onclick="deleteSharedTask(${index})">➖</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function selectDay(day) {
+      currentDay = day;
+      renderTasks();
+    }
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const text = input.value.trim();
+      if (text) {
+        tasks[currentDay].push({ text, completed: false });
+        input.value = '';
+        saveTasks();
+        renderTasks();
+      }
+    }
+
+    function toggleTask(index) {
+      tasks[currentDay][index].completed = !tasks[currentDay][index].completed;
+      saveTasks();
+      renderTasks();
+    }
+
+    function deleteTask(index) {
+      tasks[currentDay].splice(index, 1);
+      saveTasks();
+      renderTasks();
+    }
+
+    function addSharedTask() {
+      const input = document.getElementById('sharedTaskInput');
+      const text = input.value.trim();
+      if (text) {
+        sharedTasks.push({ text, completed: {} });
+        input.value = '';
+        saveTasks();
+        renderSharedTasks();
+      }
+    }
+
+    function toggleSharedTask(index) {
+      const completed = sharedTasks[index].completed || {};
+      completed[currentDay] = !completed[currentDay];
+      sharedTasks[index].completed = completed;
+      saveTasks();
+      renderSharedTasks();
+    }
+
+    function deleteSharedTask(index) {
+      sharedTasks.splice(index, 1);
+      saveTasks();
+      renderSharedTasks();
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle('dark-mode');
+    }
+
+    function weeklyReset() {
+      const today = new Date();
+      if (today.getDay() === 1) { // Monday
+        for (let day of days) {
+          if (tasks[day]) {
+            tasks[day].forEach(task => task.completed = false);
+          }
+        }
+        sharedTasks.forEach(task => task.completed = {});
+        saveTasks();
+      }
+    }
+
+    function dailyReminder() {
+      const now = new Date();
+      if (now.getHours() === 18) {
+        const hasUnfinished = (tasks[currentDay] || []).some(task => !task.completed) ||
+          sharedTasks.some(task => !task.completed?.[currentDay]);
+        if (hasUnfinished) {
+          alert('🔔 You have unfinished tasks for today!');
+        }
+      }
+    }
+
+    setInterval(dailyReminder, 60000); // check every minute
+
+    weeklyReset();
+    renderTasks();
+  </script>
+</body>
+</html>
